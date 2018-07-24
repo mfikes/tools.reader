@@ -11,7 +11,8 @@
   (:require
    [cljs.tools.reader.impl.errors :refer [reader-error]]
    [cljs.tools.reader.reader-types :refer [peek-char read-char]]
-   [cljs.tools.reader.impl.utils :refer [numeric? newline? char]]))
+   [cljs.tools.reader.impl.utils :refer [numeric? newline? char]]
+   [goog.math.Integer :as int]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helpers
@@ -48,21 +49,23 @@
 (defn- match-int
   [s]
   (let [m (vec (re-find int-pattern s))]
-    (if-not (nil? (m 2))
-      0
-      (let [^boolean negate? (identical? "-" (m 1))
-            a (cond
-               (not (nil? (m 3))) [(m 3) 10]
-               (not (nil? (m 4))) [(m 4) 16]
-               (not (nil? (m 5))) [(m 5) 8]
-               (not (nil? (m 7))) [(m 7) (js/parseInt (m 6))]
-               :else              [nil nil])
-            n (a 0)]
-        (when-not (nil? n)
-          (let [bn (js/parseInt n (a 1))
-                bn (if negate? (* -1 bn) bn)]
-            (when-not (js/isNaN bn)
-              bn)))))))
+    (if (= "N" (m 8))
+      (int/fromString (subs (m 0) 0 (dec (count (m 0)))))
+      (if-not (nil? (m 2))
+        0
+        (let [^boolean negate? (identical? "-" (m 1))
+              a                (cond
+                                 (not (nil? (m 3))) [(m 3) 10]
+                                 (not (nil? (m 4))) [(m 4) 16]
+                                 (not (nil? (m 5))) [(m 5) 8]
+                                 (not (nil? (m 7))) [(m 7) (js/parseInt (m 6))]
+                                 :else [nil nil])
+              n                (a 0)]
+          (when-not (nil? n)
+            (let [bn (js/parseInt n (a 1))
+                  bn (if negate? (* -1 bn) bn)]
+              (when-not (js/isNaN bn)
+                bn))))))))
 
 (defn- match-ratio
   [s]
